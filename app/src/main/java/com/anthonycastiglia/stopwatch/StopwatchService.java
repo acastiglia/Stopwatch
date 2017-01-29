@@ -1,13 +1,16 @@
 package com.anthonycastiglia.stopwatch;
 
 import android.app.Notification;
+import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
 import android.os.Binder;
 import android.os.IBinder;
 import android.support.annotation.Nullable;
 
+import java.util.Locale;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -19,6 +22,7 @@ public class StopwatchService extends Service {
   private static final long UPDATE_INTERVAL_MS = 5;
 
   private ScheduledFuture<?> scheduledFuture;
+  private ScheduledFuture<?> notificationUpdates;
 
   private long lastUpdatedAt;
   private long timeElapsed;
@@ -26,6 +30,7 @@ public class StopwatchService extends Service {
   private ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
   private IBinder binder = new StopwatchBinder();
   private boolean isRunning;
+  private boolean hasForegroundNotification;
 
   @Nullable
   @Override
@@ -42,14 +47,33 @@ public class StopwatchService extends Service {
     Intent notificationIntent = new Intent(this, StopwatchActivity.class);
     PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, 0);
 
-    Notification notification = new Notification.Builder(this)
+    final Notification.Builder notification = new Notification.Builder(this)
         .setContentTitle(getString(R.string.notification_title))
-        .setContentText(getString(R.string.notification_text))
         .setSmallIcon(android.R.drawable.ic_media_play)
-        .setContentIntent(pendingIntent)
-        .build();
+        .setContentIntent(pendingIntent);
 
-    startForeground(ONGOING_NOTIFICATION_ID, notification);
+    startForeground(ONGOING_NOTIFICATION_ID, notification.build());
+
+    final NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+    notificationUpdates = executorService.scheduleAtFixedRate(new Runnable() {
+      @Override
+      public void run() {
+        notificationManager.notify(ONGOING_NOTIFICATION_ID, notification.setContentText(format(timeElapsed)).build());
+      }
+    }, 0, 1, TimeUnit.SECONDS);
+    hasForegroundNotification = true;
+  }
+
+  void stopForegroundNotification() {
+    notificationUpdates.cancel(false);
+    stopForeground(true);
+    hasForegroundNotification = false;
+  }
+
+  private String format(long timeElapsed) {
+    long minutes = TimeUnit.MINUTES.convert(timeElapsed, TimeUnit.MILLISECONDS);
+    long seconds = TimeUnit.SECONDS.convert(timeElapsed - TimeUnit.MILLISECONDS.convert(minutes, TimeUnit.MINUTES), TimeUnit.MILLISECONDS);
+    return String.format(Locale.getDefault(), "%01d:%02d", minutes, seconds);
   }
 
   @Override
@@ -96,6 +120,10 @@ public class StopwatchService extends Service {
 
   public boolean timerRunning() {
     return isRunning;
+  }
+
+  public boolean hasForegroundNotification() {
+    return hasForegroundNotification;
   }
 
   class StopwatchBinder extends Binder {

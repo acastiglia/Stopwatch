@@ -45,7 +45,10 @@ public class StopwatchActivity extends AppCompatActivity {
       if (service.timerRunning()) {
         resumeDisplayUpdates();
       }
-      service.stopForeground(true);
+
+      if (service.hasForegroundNotification()) {
+        service.stopForegroundNotification();
+      }
     }
 
     @Override
