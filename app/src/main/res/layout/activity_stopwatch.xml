@@ -1,48 +1,46 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout android:id="@+id/activity_stopwatch"
+<RelativeLayout android:id="@+id/activity_stopwatch"
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context="com.anthonycastiglia.stopwatch.StopwatchActivity">
 
-  <LinearLayout
+  <TextView android:id="@+id/display_time"
       android:layout_width="wrap_content"
       android:layout_height="wrap_content"
-      android:orientation="vertical"
-      android:layout_gravity="center">
+      android:fontFamily="monospace"
+      android:textSize="48sp"
+      android:layout_centerInParent="true"
+      tools:text="0:00.00"/>
 
-    <TextView android:id="@+id/display_time"
+  <LinearLayout android:id="@+id/button_bar"
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+      android:orientation="horizontal"
+      android:layout_below="@id/display_time"
+      android:layout_centerHorizontal="true">
+
+    <Button android:id="@+id/button_start_stop"
+        style="?android:attr/buttonBarButtonStyle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:fontFamily="monospace"
-        android:text="0"
-        android:textSize="48sp"
-        android:layout_gravity="center"
-        />
+        android:enabled="false"
+        tools:text="start"/>
 
-    <LinearLayout
+    <Button android:id="@+id/button_lap_reset"
+        style="?android:attr/buttonBarButtonStyle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:layout_gravity="center">
-
-      <Button android:id="@+id/button_start_stop"
-          style="?android:attr/buttonBarButtonStyle"
-          android:layout_width="wrap_content"
-          android:layout_height="wrap_content"
-          android:enabled="false"
-          />
-
-      <Button android:id="@+id/button_lap_reset"
-          style="?android:attr/buttonBarButtonStyle"
-          android:layout_width="wrap_content"
-          android:layout_height="wrap_content"
-          android:enabled="false"
-          />
-
-    </LinearLayout>
+        android:enabled="false"
+        tools:text="reset"/>
 
   </LinearLayout>
 
-</FrameLayout>
+  <android.support.v7.widget.RecyclerView android:id="@+id/lap_list"
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+      android:layout_below="@id/button_bar"
+      android:layout_centerHorizontal="true"/>
+
+</RelativeLayout>

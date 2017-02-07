@@ -10,6 +10,8 @@ import android.os.Binder;
 import android.os.IBinder;
 import android.support.annotation.Nullable;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -31,6 +33,9 @@ public class StopwatchService extends Service {
   private IBinder binder = new StopwatchBinder();
   private boolean isRunning;
   private boolean hasForegroundNotification;
+
+  private List<Long> laps;
+  private long timeElapsedAtLastLap;
 
   @Nullable
   @Override
@@ -84,6 +89,10 @@ public class StopwatchService extends Service {
   @Override
   public int onStartCommand(Intent intent, int flags, final int startId) {
     super.onStartCommand(intent, flags, startId);
+
+    laps = new ArrayList<>();
+    timeElapsedAtLastLap = 0;
+
     return START_STICKY;
   }
 
@@ -110,16 +119,28 @@ public class StopwatchService extends Service {
     isRunning = false;
   }
 
-  void resetTimer() {
+  void reset() {
     timeElapsed = 0;
+    timeElapsedAtLastLap = 0;
+    laps.clear();
   }
 
   long getTimeElapsed() {
     return timeElapsed;
   }
 
-  public boolean timerRunning() {
+  boolean timerRunning() {
     return isRunning;
+  }
+
+  void recordLap() {
+    long timeElapsed = getTimeElapsed();
+    laps.add(timeElapsed - timeElapsedAtLastLap);
+    timeElapsedAtLastLap = timeElapsed;
+  }
+
+  List<Long> getLaps() {
+    return laps;
   }
 
   public boolean hasForegroundNotification() {

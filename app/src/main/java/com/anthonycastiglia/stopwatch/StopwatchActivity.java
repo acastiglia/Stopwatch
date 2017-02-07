@@ -7,11 +7,16 @@ import android.content.ServiceConnection;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.TextView;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -26,6 +31,9 @@ public class StopwatchActivity extends AppCompatActivity {
   private TextView timeDisplay;
   private Button startStopButton;
   private Button lapResetButton;
+
+  private RecyclerView lapList;
+  private LapAdapter lapAdapter;
 
   private ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
   private ScheduledFuture<?> scheduledFuture;
@@ -49,6 +57,9 @@ public class StopwatchActivity extends AppCompatActivity {
       if (service.hasForegroundNotification()) {
         service.stopForegroundNotification();
       }
+
+      lapAdapter.setLaps(service.getLaps());
+      lapAdapter.notifyDataSetChanged();
     }
 
     @Override
@@ -90,13 +101,21 @@ public class StopwatchActivity extends AppCompatActivity {
       @Override
       public void onClick(View view) {
         if (service.timerRunning()) {
-          Log.i("StopwatchService", "Lap @ " + service.getTimeElapsed());
+          service.recordLap();
+          lapList.getAdapter().notifyDataSetChanged();
         } else {
-          service.resetTimer();
+          service.reset();
+          lapAdapter.notifyDataSetChanged();
           setDisplayTime(0);
         }
       }
     });
+
+    lapList = (RecyclerView) findViewById(R.id.lap_list);
+    lapList.setHasFixedSize(true);
+    lapList.setLayoutManager(new LinearLayoutManager(this));
+    lapAdapter = new LapAdapter();
+    lapList.setAdapter(lapAdapter);
   }
 
   @Override
@@ -135,10 +154,57 @@ public class StopwatchActivity extends AppCompatActivity {
   }
 
   private void setDisplayTime(long timeElapsed) {
+    timeDisplay.setText(formatTime(timeElapsed));
+  }
+
+  private String formatTime(long timeElapsed) {
     long minutes = TimeUnit.MINUTES.convert(timeElapsed, TimeUnit.MILLISECONDS);
     long seconds = TimeUnit.SECONDS.convert(timeElapsed - TimeUnit.MILLISECONDS.convert(minutes, TimeUnit.MINUTES), TimeUnit.MILLISECONDS);
     long milliseconds = timeElapsed - TimeUnit.MILLISECONDS.convert(minutes, TimeUnit.MINUTES) - TimeUnit.MILLISECONDS.convert(seconds, TimeUnit.SECONDS);
 
-    timeDisplay.setText(String.format(Locale.getDefault(), "%d:%02d.%02d", minutes, seconds, milliseconds / 10));
+    return String.format(Locale.getDefault(), "%d:%02d.%02d", minutes, seconds, milliseconds / 10);
+  }
+
+  private class LapHolder extends RecyclerView.ViewHolder {
+    private final TextView textView;
+
+    LapHolder(TextView textView) {
+      super(textView);
+      this.textView = textView;
+    }
+
+    void bind(long lapTime) {
+      textView.setText(formatTime(lapTime));
+    }
+  }
+
+  private class LapAdapter extends RecyclerView.Adapter<LapHolder> {
+
+    List<Long> laps;
+
+    LapAdapter() {
+      this.laps = Collections.emptyList();
+    }
+
+    void setLaps(List<Long> laps) {
+      this.laps = laps;
+    }
+
+    @Override
+    public LapHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+      LayoutInflater inflater = LayoutInflater.from(StopwatchActivity.this);
+      TextView view = (TextView) inflater.inflate(R.layout.lap_item, parent, false);
+      return new LapHolder(view);
+    }
+
+    @Override
+    public void onBindViewHolder(LapHolder holder, int position) {
+      holder.bind(laps.get(laps.size() - 1 - position));
+    }
+
+    @Override
+    public int getItemCount() {
+      return laps.size();
+    }
   }
 }
